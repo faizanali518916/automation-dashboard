@@ -1,25 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function RegisterPage() {
 	const [name, setName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
-	const [dept, setDept] = useState<'Marketing' | 'Operations' | 'Sales' | 'Management'>('Marketing');
+	const [showPassword, setShowPassword] = useState(false);
+	const [dept, setDept] = useState<'Marketing' | 'Operations' | 'Sales'>('Marketing');
 	const [error, setError] = useState('');
+	const [success, setSuccess] = useState('');
 	const [loading, setLoading] = useState(false);
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setLoading(true);
 		setError('');
+		setSuccess('');
 
 		const response = await fetch('/api/register', {
 			method: 'POST',
@@ -32,26 +34,16 @@ export default function RegisterPage() {
 			}),
 		});
 
+		const payload = (await response.json()) as { error?: string; verificationPreviewUrl?: string | null };
+
 		if (!response.ok) {
-			const payload = (await response.json()) as { error?: string };
 			setError(payload.error ?? 'Unable to register at the moment.');
 			setLoading(false);
 			return;
 		}
 
-		const loginResult = await signIn('credentials', {
-			email,
-			password,
-			redirect: false,
-			callbackUrl: '/',
-		});
-
-		if (loginResult?.error) {
-			window.location.href = '/login';
-			return;
-		}
-
-		window.location.href = loginResult?.url ?? '/';
+		setSuccess(`Account created. Check your email for the verification link.`);
+		setLoading(false);
 	}
 
 	return (
@@ -59,7 +51,7 @@ export default function RegisterPage() {
 			<Card className="w-full">
 				<CardHeader>
 					<CardTitle>Create account</CardTitle>
-					<CardDescription>Register and immediately access your ABAC-scoped dashboard.</CardDescription>
+					<CardDescription>Register your account and verify your email before signing in.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form onSubmit={onSubmit} className="space-y-4">
@@ -71,28 +63,37 @@ export default function RegisterPage() {
 							onChange={(event) => setEmail(event.target.value)}
 							required
 						/>
-						<Input
-							type="password"
-							placeholder="Password (min 8 chars)"
-							value={password}
-							onChange={(event) => setPassword(event.target.value)}
-							required
-						/>
+						<div className="relative">
+							<Input
+								type={showPassword ? 'text' : 'password'}
+								placeholder="Password (min 8 chars)"
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
+								required
+							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								className="absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400 hover:text-zinc-200"
+							>
+								{showPassword ? 'Hide' : 'Show'}
+							</button>
+						</div>
 						<label className="space-y-1 text-sm text-zinc-300">
 							<span>Department</span>
 							<select
 								value={dept}
-								onChange={(event) => setDept(event.target.value as 'Marketing' | 'Operations' | 'Sales' | 'Management')}
+								onChange={(event) => setDept(event.target.value as 'Marketing' | 'Operations' | 'Sales')}
 								className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:outline-none"
 							>
 								<option value="Marketing">Marketing</option>
 								<option value="Operations">Operations</option>
 								<option value="Sales">Sales</option>
-								<option value="Management">Management</option>
 							</select>
 						</label>
 						{error ? <p className="text-sm text-red-300">{error}</p> : null}
-						<Button className="w-full" type="submit" disabled={loading}>
+						{success ? <p className="text-sm text-emerald-300">{success}</p> : null}
+						<Button className="mt-4 w-full" type="submit" disabled={loading}>
 							{loading ? 'Creating account...' : 'Register'}
 						</Button>
 						<p className="text-center text-sm text-zinc-400">

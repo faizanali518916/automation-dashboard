@@ -1,14 +1,13 @@
-import { getServerSession } from 'next-auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { SessionActions } from '@/components/auth/session-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { authOptions } from '@/lib/auth';
+import { getServerAuthSession } from '@/lib/auth';
 
 export default async function ProfilePage() {
-	const session = await getServerSession(authOptions);
+	const session = await getServerAuthSession();
 
 	if (!session?.user) {
 		redirect('/login?callbackUrl=/profile');
@@ -19,7 +18,7 @@ export default async function ProfilePage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Profile</CardTitle>
-					<CardDescription>Verify your ABAC claims directly from your active NextAuth session.</CardDescription>
+					<CardDescription>Verify your ABAC claims directly from your active session.</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-5">
 					<div className="space-y-1 text-sm text-zinc-300">

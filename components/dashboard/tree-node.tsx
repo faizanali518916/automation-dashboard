@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
@@ -23,6 +23,11 @@ export function TreeNode({ node, depth = 0 }: TreeNodeProps) {
 	const hasChildren = children.length > 0;
 
 	const [expanded, setExpanded] = useState(depth === 0);
+
+	// Use useMemo to stabilize refs array across renders
+	const childRefs = useMemo(() => {
+		return Array.from({ length: children.length }, () => React.createRef<HTMLDivElement>());
+	}, [children.length]);
 
 	const docsHref = node.docPath ?? `/docs/${node.id}`;
 	const toolHref = node.externalLink ?? node.internalPath;
@@ -54,6 +59,7 @@ export function TreeNode({ node, depth = 0 }: TreeNodeProps) {
 	return (
 		<div ref={nodeRef} className="relative w-full scroll-mt-12">
 			<div
+				data-tree-node-header
 				role={hasChildren ? 'button' : undefined}
 				tabIndex={hasChildren ? 0 : undefined}
 				onClick={handleToggle}
@@ -95,19 +101,20 @@ export function TreeNode({ node, depth = 0 }: TreeNodeProps) {
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: 'auto', opacity: 1 }}
 						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.3, ease: 'easeOut' }}
+						transition={{ duration: 0.18, ease: 'easeOut' }}
 						onAnimationComplete={handleExpandComplete}
 						className="relative overflow-visible pt-10"
 					>
-						<ParentToChildConnector childCount={children.length} />
+						<ParentToChildConnector childCount={children.length} childRefs={childRefs} />
 
 						<div className="relative z-10 space-y-[50px] pl-[80px]">
 							{children.map((child, index) => (
 								<motion.div
+									ref={childRefs[index]}
 									key={child.id}
 									initial={{ opacity: 0, x: -8 }}
 									animate={{ opacity: 1, x: 0 }}
-									transition={{ duration: 0.22, delay: index * 0.25 }}
+									transition={{ duration: 0.14, delay: index * 0.08 }}
 								>
 									<TreeNode node={child} depth={depth + 1} />
 								</motion.div>

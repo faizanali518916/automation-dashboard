@@ -1,7 +1,5 @@
-import { getServerSession } from 'next-auth';
-
-import { authOptions } from '@/lib/auth';
-import { hasRequiredTags } from '@/lib/abac';
+import { getServerAuthSession } from '@/lib/auth';
+import { hasRequiredTags, isSuperUserTags } from '@/lib/abac';
 import { DynamicTree } from '@/components/dashboard/dynamic-tree';
 import { navigationTree, type NavigationNode } from '@/config/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +8,10 @@ function filterTreeByTags(
 	nodes: NavigationNode[],
 	userTags: Record<string, string | number | boolean | null | undefined>
 ): NavigationNode[] {
+	if (isSuperUserTags(userTags)) {
+		return nodes;
+	}
+
 	return nodes
 		.map((node) => {
 			const filteredChildren = node.subcategories ? filterTreeByTags(node.subcategories, userTags) : undefined;
@@ -34,7 +36,7 @@ function filterTreeByTags(
 }
 
 export default async function Home() {
-	const session = await getServerSession(authOptions);
+	const session = await getServerAuthSession();
 	const userTags = session?.user.tags ?? {};
 
 	const filteredNavigation = filterTreeByTags(navigationTree, userTags);
@@ -50,7 +52,7 @@ export default async function Home() {
 					</h1>
 					<p className="mt-4 max-w-3xl text-base leading-8 text-zinc-200">
 						This branching tree grows as nodes expand, collapses cleanly as nodes close, and always stays filtered by
-						your ABAC tags from the current NextAuth session.
+						your ABAC tags from your authenticated session.
 					</p>
 				</div>
 			</section>

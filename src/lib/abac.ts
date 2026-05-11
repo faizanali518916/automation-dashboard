@@ -6,11 +6,15 @@ export type RequiredTagRule = {
 	min?: number;
 };
 
+export function isSuperUserTags(userTags: UserTags | undefined): boolean {
+	return userTags?.dept === 'SUPERUSER' || userTags?.role === 'SUPERUSER' || userTags?.isSuperuser === true;
+}
+
 export function hasRequiredTags(userTags: UserTags | undefined, requiredTags: RequiredTagRule[]): boolean {
 	if (!requiredTags.length) return true;
 	if (!userTags) return false;
 
-	if (userTags.dept === 'Management') {
+	if (isSuperUserTags(userTags)) {
 		return true;
 	}
 

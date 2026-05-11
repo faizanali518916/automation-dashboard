@@ -1,76 +1,69 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
 
-import { AppDataSource } from '@/lib/db/data-source';
-import { UserEntity } from '@/lib/db/entities/auth.entities';
+import { normalizeDepartment, registerUser } from '@/lib/auth';
 
-const SALT_ROUNDS = 12;
+async function sendVerificationEmail(to: string, verifyUrl: string) {
+	const smtpPort = Number(process.env.SMTP_PORT);
+	const smtpHost = process.env.SMTP_HOST;
+	const smtpUser = process.env.SMTP_USER;
+	const smtpPass = process.env.SMTP_PASS;
 
-const ALLOWED_EMAIL_DOMAINS = ['spctek.com'];
-const ALLOWED_DEPARTMENTS = ['Marketing', 'Operations', 'Sales', 'Management'] as const;
+	if (!smtpPort || !smtpHost || !smtpUser || !smtpPass) {
+		throw new Error('SMTP configuration is incomplete.');
+	}
 
-type Department = (typeof ALLOWED_DEPARTMENTS)[number];
+	const transporter = nodemailer.createTransport({
+		host: smtpHost,
+		port: smtpPort,
+		secure: smtpPort === 465,
+		auth: {
+			user: smtpUser,
+			pass: smtpPass,
+		},
+	});
+
+	await transporter.sendMail({
+		from: smtpUser,
+		to,
+		subject: 'Verify your account',
+		html: `<p>Click to verify your account:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+	});
+}
 
 export async function POST(request: Request) {
 	try {
-		const { name, email, password, dept } = (await request.json()) as {
-			name?: string;
+		const { email, password, name, dept } = (await request.json()) as {
 			email?: string;
 			password?: string;
+			name?: string;
 			dept?: string;
 		};
 
-		if (!email || !password) {
-			return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
-		}
-
-		const normalizedEmail = email.toLowerCase().trim();
-		const emailParts = normalizedEmail.split('@');
-		const emailDomain = emailParts.length === 2 ? emailParts[1] : '';
-
-		if (!ALLOWED_EMAIL_DOMAINS.includes(emailDomain)) {
-			return NextResponse.json({ error: 'Email must be from the spctek.com domain.' }, { status: 400 });
+		if (!email?.trim() || !password?.trim()) {
+			return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
 		}
 
 		if (password.length < 8) {
-			return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
+			return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
 		}
 
-		if (!AppDataSource.isInitialized) {
-			await AppDataSource.initialize();
-		}
-
-		const userRepo = AppDataSource.getRepository(UserEntity);
-		const existingUser = await userRepo.findOne({ where: { email: normalizedEmail } });
-
-		if (existingUser) {
-			return NextResponse.json({ error: 'An account already exists for this email.' }, { status: 409 });
-		}
-
-		const department = ALLOWED_DEPARTMENTS.includes(dept as Department) ? (dept as Department) : null;
-
+		const department = normalizeDepartment(dept);
 		if (!department) {
-			return NextResponse.json(
-				{ error: 'Department must be one of Marketing, Operations, Sales, or Management.' },
-				{ status: 400 }
-			);
+			return NextResponse.json({ error: 'Department must be Marketing, Operations, or Sales' }, { status: 400 });
 		}
 
-		const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+		const result = await registerUser(email.toLowerCase().trim(), password, name?.trim() || null, department);
+		if ('error' in result) {
+			return NextResponse.json({ error: result.error }, { status: 409 });
+		}
 
-		const user = userRepo.create({
-			name: name?.trim() || null,
-			email: normalizedEmail,
-			password: passwordHash,
-			tags: {
-				dept: department,
-			},
-		});
+		const verifyUrl = new URL(`/api/auth/verify-email?token=${result.verifyToken}`, request.url).toString();
+		await sendVerificationEmail(email.toLowerCase().trim(), verifyUrl);
+		const isDev = process.env.NODE_ENV !== 'production';
 
-		await userRepo.save(user);
-
-		return NextResponse.json({ ok: true }, { status: 201 });
+		return NextResponse.json({ ok: true, verificationPreviewUrl: isDev ? verifyUrl : null }, { status: 201 });
 	} catch {
-		return NextResponse.json({ error: 'Failed to register user.' }, { status: 500 });
+		return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
 	}
 }

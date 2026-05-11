@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Sora, JetBrains_Mono } from 'next/font/google';
-import { getServerSession } from 'next-auth';
 
-import { authOptions } from '@/lib/auth';
+import { getServerAuthSession } from '@/lib/auth';
 import './globals.css';
 
 const sora = Sora({
@@ -26,7 +25,7 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const session = await getServerSession(authOptions);
+	const session = await getServerAuthSession();
 
 	return (
 		<html lang="en" className={`${sora.variable} ${jetbrainsMono.variable} h-full antialiased`}>
