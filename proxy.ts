@@ -9,7 +9,7 @@ import type { UserTags } from '@/lib/db/entities/auth.entities';
 export async function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	if (!pathname.startsWith('/tools/') && !pathname.startsWith('/docs/')) {
+	if (!pathname.startsWith('/docs/')) {
 		return NextResponse.next();
 	}
 
@@ -40,5 +40,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ['/tools/:path*', '/docs/:path*'],
+	matcher: ['/docs/:path*'],
 };

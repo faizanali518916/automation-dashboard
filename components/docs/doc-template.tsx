@@ -23,6 +23,7 @@ type DocTemplateProps = {
 	eyebrow: string;
 	title: string;
 	summary: string;
+	pricing?: string;
 	toolLink?: DocLink;
 	sections: DocSection[];
 };
@@ -86,7 +87,7 @@ function renderInlineText(text: string) {
 	});
 }
 
-export function DocTemplate({ eyebrow, title, summary, toolLink, sections }: DocTemplateProps) {
+export function DocTemplate({ eyebrow, title, summary, pricing, toolLink, sections }: DocTemplateProps) {
 	return (
 		<main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-4 py-10 sm:px-8 sm:py-14 lg:px-12">
 			<div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,0.28),transparent_30%),radial-gradient(circle_at_88%_12%,rgba(59,130,246,0.24),transparent_28%),radial-gradient(circle_at_50%_100%,rgba(6,182,212,0.22),transparent_44%),linear-gradient(160deg,#04050a_0%,#060913_48%,#05060d_100%)]" />
@@ -101,6 +102,12 @@ export function DocTemplate({ eyebrow, title, summary, toolLink, sections }: Doc
 					{title}
 				</h1>
 				<p className="mt-6 max-w-4xl text-base leading-8 text-zinc-200/95">{summary}</p>
+				{pricing ? (
+					<div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50 shadow-[0_0_30px_rgba(34,211,238,0.15)]">
+						<span className="font-semibold tracking-wide text-cyan-100 uppercase">Monthly price</span>
+						<span className="text-zinc-50">{pricing}</span>
+					</div>
+				) : null}
 				{toolLink ? (
 					<div className="mt-8">
 						<a href={toolLink.href} target="_blank" rel="noreferrer">

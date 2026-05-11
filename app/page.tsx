@@ -19,6 +19,10 @@ function filterTreeByTags(
 			const canAccessCurrent = hasRequiredTags(userTags, node.requiredTags);
 			const hasVisibleChildren = Boolean(filteredChildren?.length);
 
+			if (node.subcategories && !hasVisibleChildren) {
+				return null;
+			}
+
 			if (!canAccessCurrent && !hasVisibleChildren) {
 				return null;
 			}

@@ -30,10 +30,10 @@ export function TreeNode({ node, depth = 0 }: TreeNodeProps) {
 	}, [children.length]);
 
 	const docsHref = node.docPath ?? `/docs/${node.id}`;
-	const toolHref = node.externalLink ?? node.internalPath;
-	const isExternalTool = Boolean(node.externalLink && !node.internalPath);
+	const toolHref = node.externalLink;
+	const hasExternalTool = Boolean(node.externalLink);
 
-	const NodeIcon = hasChildren ? (depth === 0 ? Network : FolderTree) : isExternalTool ? ExternalLink : Sparkles;
+	const NodeIcon = hasChildren ? (depth === 0 ? Network : FolderTree) : hasExternalTool ? ExternalLink : Sparkles;
 
 	const handleToggle = () => {
 		if (!hasChildren) return;
@@ -92,7 +92,7 @@ export function TreeNode({ node, depth = 0 }: TreeNodeProps) {
 
 				<span className="relative min-w-0 flex-1 truncate font-medium text-zinc-50">{node.name}</span>
 
-				{!hasChildren && <NodeActions docsHref={docsHref} toolHref={toolHref} isExternalTool={isExternalTool} />}
+				{!hasChildren && <NodeActions docsHref={docsHref} toolHref={toolHref} />}
 			</div>
 
 			<AnimatePresence initial={false}>

@@ -1,11 +1,11 @@
 export type ExternalToolMetadata = {
 	id: string;
 	name: string;
-	category: 'Sales' | 'Operations' | 'Design';
+	category: 'Sales' | 'Operations' | 'Marketing' | 'Design';
 	shared?: boolean;
 	description: string;
 	features: string[];
-	pricing: number;
+	pricing: string;
 	useCase: string;
 	externalLink?: string;
 };
@@ -24,7 +24,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Team collaboration features',
 			'CRM integration capabilities',
 		],
-		pricing: -5,
+		pricing: 'Not listed',
 		useCase:
 			'Enable sales teams with reliable communication infrastructure and call tracking for customer interactions.',
 	},
@@ -41,8 +41,25 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Automated follow-ups and workflows',
 			'Sales reporting and forecasting',
 		],
-		pricing: -5,
+		pricing: 'Not listed',
 		useCase: 'Manage customer relationships, track sales pipelines, and automate sales workflows from lead to close.',
+	},
+	quickbooks: {
+		id: 'quickbooks',
+		name: 'QuickBooks',
+		category: 'Sales',
+		description:
+			'QuickBooks is the accounting and invoicing platform the team can use to track finances, payments, and business records.',
+		features: [
+			'Invoice creation and payment tracking',
+			'Bank and expense reconciliation',
+			'Profit and loss reporting',
+			'Basic bookkeeping workflows',
+			'Financial record organization',
+		],
+		pricing: 'Not listed',
+		useCase:
+			'Keep financial records, invoices, and basic reporting in one place so sales-related accounting stays organized.',
 	},
 	helium10: {
 		id: 'helium10',
@@ -57,7 +74,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Listing optimization tools',
 			'Sales analytics and forecasting',
 		],
-		pricing: -5,
+		pricing: '$96.80 / month',
 		useCase:
 			'Research Amazon products and keywords, monitor competition, and optimize listings for better visibility and sales.',
 	},
@@ -75,7 +92,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Performance analytics',
 			'Feedback and review management',
 		],
-		pricing: -5,
+		pricing: '$32.00 / month',
 		useCase: 'Manage and optimize Amazon listings at scale with shared account access for team collaboration.',
 	},
 	'chatgpt-plus': {
@@ -91,7 +108,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Access to latest models and features',
 			'Integration with external tools',
 		],
-		pricing: -5,
+		pricing: '$20 / month',
 		useCase:
 			'Leverage advanced AI for content creation, data analysis, brainstorming, and automating operational tasks.',
 	},
@@ -108,8 +125,25 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Customizable workflows',
 			'Real-time collaboration',
 		],
-		pricing: -5,
+		pricing: '$9 / user / month',
 		useCase: 'Organize project tasks, track issues, and coordinate team efforts using agile methodologies.',
+	},
+	'google-workspace': {
+		id: 'google-workspace',
+		name: 'Google Workspace',
+		category: 'Operations',
+		description:
+			'Google Workspace is the shared productivity suite for email, documents, calendars, and team collaboration.',
+		features: [
+			'Gmail and shared inbox support',
+			'Docs, Sheets, and Slides collaboration',
+			'Calendar and meeting coordination',
+			'Drive storage and file sharing',
+			'Admin and access controls',
+		],
+		pricing: 'Not listed',
+		useCase:
+			'Keep communication, documents, and scheduling aligned so operations work can move without scattered files or isolated inboxes.',
 	},
 	nordpass: {
 		id: 'nordpass',
@@ -124,7 +158,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Breach monitoring alerts',
 			'Multi-device synchronization',
 		],
-		pricing: -5,
+		pricing: '$18 / month',
 		useCase: 'Securely manage team credentials and sensitive information with zero-knowledge encryption.',
 	},
 	freepik: {
@@ -140,7 +174,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Creative commons and premium content',
 			'Easy search and filtering',
 		],
-		pricing: -5,
+		pricing: '$12.20 / month',
 		useCase: 'Access high-quality design assets and templates for creating marketing materials and visual content.',
 	},
 	creatify: {
@@ -156,7 +190,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Brand customization options',
 			'One-click social sharing',
 		],
-		pricing: -5,
+		pricing: '$40 / month',
 		useCase: 'Create professional video ads and social media content using AI automation.',
 	},
 	'adobe-creative-cloud': {
@@ -172,7 +206,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Premiere Pro for video editing',
 			'After Effects for motion graphics',
 		],
-		pricing: -5,
+		pricing: '$43.20 / month',
 		useCase:
 			'Create professional designs, edit images and videos, and produce polished marketing materials with industry-standard tools.',
 	},
@@ -189,7 +223,7 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'Team collaboration',
 			'Brand kit management',
 		],
-		pricing: -5,
+		pricing: '$4.30 / month',
 		useCase: 'Create professional marketing graphics, social posts, and presentations without design expertise.',
 	},
 	'hafiz-seo-tools': {
@@ -206,9 +240,75 @@ export const externalToolsDatabase: Record<string, ExternalToolMetadata> = {
 			'On-page optimization suggestions',
 			'Rank tracking across keywords',
 		],
-		pricing: -5,
+		pricing: '$9.90 / month',
 		useCase:
 			'Research keywords, analyze competitors, and optimize content for better search engine rankings and visibility.',
+	},
+	instantly: {
+		id: 'instantly',
+		name: 'Instantly',
+		category: 'Marketing',
+		description:
+			'Instantly is a cold email outreach platform that helps teams run outbound campaigns, track deliverability, and manage sending infrastructure.',
+		features: [
+			'Cold email sequence management',
+			'Inbox rotation and sending controls',
+			'Deliverability monitoring',
+			'Reply tracking and campaign analytics',
+			'Outbound workflow automation',
+		],
+		pricing: '$97.00 / month',
+		useCase: 'Run outbound email campaigns at scale while keeping sender reputation and campaign reporting organized.',
+	},
+	inboxes: {
+		id: 'inboxes',
+		name: 'Inboxes',
+		category: 'Marketing',
+		description:
+			'Inboxes is an email account management workspace for organizing sending identities, replies, and outbound communication flow.',
+		features: [
+			'Inbox organization for outreach accounts',
+			'Reply flow management',
+			'Sender account coordination',
+			'Communication visibility across campaigns',
+			'Outbound account management',
+		],
+		pricing: '$45.00 / month',
+		useCase: 'Keep outbound sender accounts and reply handling structured so email operations stay easy to manage.',
+	},
+	make: {
+		id: 'make',
+		name: 'Make',
+		category: 'Marketing',
+		description:
+			'Make is a visual automation platform that connects various software applications and databases to automate workflows and sync data without writing code.',
+		features: [
+			'Visual scenario builder for automations',
+			'App and database integrations',
+			'Trigger-based workflow execution',
+			'Data routing and transformation steps',
+			'Reusable automation logic',
+		],
+		pricing: '$11.30 / month',
+		useCase:
+			'Automate repeatable marketing and operations workflows so the team can move data between systems without manual copying.',
+	},
+	semrush: {
+		id: 'semrush',
+		name: 'Semrush',
+		category: 'Marketing',
+		description:
+			'Semrush is an all-in-one digital marketing suite used for Search Engine Optimization (SEO), competitor analysis, keyword research, link building, and PPC tracking.',
+		features: [
+			'Keyword research and ranking analysis',
+			'Site audit and technical SEO checks',
+			'Competitive domain insights',
+			'Backlink analysis and monitoring',
+			'PPC tracking and content planning support',
+		],
+		pricing: '$99.00 / month',
+		useCase:
+			'Research search demand, audit websites, and study competitor strategy so marketing decisions are grounded in data.',
 	},
 };
 
@@ -219,5 +319,6 @@ export function getExternalToolById(toolId: string): ExternalToolMetadata | unde
 export const externalToolsByCategory = {
 	Sales: Object.values(externalToolsDatabase).filter((tool) => tool.category === 'Sales'),
 	Operations: Object.values(externalToolsDatabase).filter((tool) => tool.category === 'Operations'),
+	Marketing: Object.values(externalToolsDatabase).filter((tool) => tool.category === 'Marketing'),
 	Design: Object.values(externalToolsDatabase).filter((tool) => tool.category === 'Design'),
 };
