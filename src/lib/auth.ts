@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 
-import { AppDataSource } from '@/lib/db/data-source';
+import { ensureAppDataSource, AppDataSource } from '@/lib/db/data-source';
 import { TokenEntity, TokenType, UserEntity, type UserTags } from '@/lib/db/entities/auth.entities';
 
 const SESSION_COOKIE = 'session';
@@ -19,12 +19,6 @@ export type AuthUser = {
 	tags: UserTags;
 	emailVerified: boolean;
 };
-
-async function ensureDataSource() {
-	if (!AppDataSource.isInitialized) {
-		await AppDataSource.initialize();
-	}
-}
 
 function randomToken() {
 	return randomBytes(32).toString('hex');
@@ -44,7 +38,7 @@ export async function checkPassword(password: string, hash: string) {
 }
 
 export async function registerUser(email: string, password: string, name: string | null, dept: Department) {
-	await ensureDataSource();
+	await ensureAppDataSource();
 	const userRepo = AppDataSource.getRepository(UserEntity);
 
 	const normalizedEmail = email.toLowerCase().trim();
@@ -80,7 +74,7 @@ export async function registerUser(email: string, password: string, name: string
 }
 
 export async function verifyEmailAndCreateSession(token: string) {
-	await ensureDataSource();
+	await ensureAppDataSource();
 	const tokenRepo = AppDataSource.getRepository(TokenEntity);
 	const record = await tokenRepo.findOne({
 		where: { type: TokenType.EMAIL_VERIFICATION, tokenHash: token },
@@ -116,7 +110,7 @@ export async function verifyEmailAndCreateSession(token: string) {
 }
 
 export async function loginUser(email: string, password: string) {
-	await ensureDataSource();
+	await ensureAppDataSource();
 	const userRepo = AppDataSource.getRepository(UserEntity);
 
 	const user = await userRepo
@@ -149,7 +143,7 @@ export async function loginUser(email: string, password: string) {
 }
 
 export async function getSessionUser(sessionToken: string): Promise<AuthUser | null> {
-	await ensureDataSource();
+	await ensureAppDataSource();
 	const tokenRepo = AppDataSource.getRepository(TokenEntity);
 	const session = await tokenRepo.findOne({
 		where: { type: TokenType.REFRESH, tokenHash: sessionToken },
@@ -165,7 +159,7 @@ export async function getSessionUser(sessionToken: string): Promise<AuthUser | n
 }
 
 export async function revokeSession(sessionToken: string) {
-	await ensureDataSource();
+	await ensureAppDataSource();
 	const tokenRepo = AppDataSource.getRepository(TokenEntity);
 	const session = await tokenRepo.findOne({
 		where: { type: TokenType.REFRESH, tokenHash: sessionToken },

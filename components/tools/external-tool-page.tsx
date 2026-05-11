@@ -31,10 +31,10 @@ export function ExternalToolPage({ title, description, docPath, toolUrl, toolLab
 								<ExternalLink className="h-4 w-4" />
 							</Button>
 						</a>
-						<Link href={docPath}>
+						<Link href={docPath} target="_blank" rel="noreferrer">
 							<Button variant="secondary">View Documentation</Button>
 						</Link>
-						<Link href="/">
+						<Link href="/" target="_blank" rel="noreferrer">
 							<Button variant="outline">Back to Dashboard</Button>
 						</Link>
 					</div>

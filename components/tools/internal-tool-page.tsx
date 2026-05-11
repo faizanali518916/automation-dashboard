@@ -25,10 +25,10 @@ export function InternalToolPage({ title, description, docPath, placeholder }: I
 						<Button>Execute</Button>
 					</div>
 					<div className="flex flex-wrap gap-3">
-						<Link href={docPath}>
+						<Link href={docPath} target="_blank" rel="noreferrer">
 							<Button variant="secondary">View Documentation</Button>
 						</Link>
-						<Link href="/">
+						<Link href="/" target="_blank" rel="noreferrer">
 							<Button variant="outline">Back to Dashboard</Button>
 						</Link>
 					</div>

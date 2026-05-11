@@ -201,7 +201,12 @@ export function DocTemplate({ eyebrow, title, summary, toolLink, sections }: Doc
 			</div>
 
 			<div className="pb-4">
-				<Link href="/" className="text-sm text-cyan-200 transition hover:text-cyan-100">
+				<Link
+					href="/"
+					target="_blank"
+					rel="noreferrer"
+					className="text-sm text-cyan-200 transition hover:text-cyan-100"
+				>
 					Back to dashboard
 				</Link>
 			</div>
