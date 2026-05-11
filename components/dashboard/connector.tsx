@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 type ParentToChildConnectorProps = {
 	childCount: number;
-	childRefs: React.RefObject<HTMLDivElement>[];
+	childRefs: RefObject<HTMLDivElement | null>[];
 };
 
 export function ParentToChildConnector({ childCount, childRefs }: ParentToChildConnectorProps) {
-	if (childCount === 0) return null;
-
 	const containerRef = useRef<SVGSVGElement>(null);
 	const [childPositions, setChildPositions] = useState<number[]>([]);
 
@@ -36,12 +35,18 @@ export function ParentToChildConnector({ childCount, childRefs }: ParentToChildC
 
 		if (positions.length > 0) {
 			setChildPositions(positions);
+		} else {
+			setChildPositions([]);
 		}
 	}, [childRefs]);
 
 	useEffect(() => {
+		if (childCount === 0) {
+			return;
+		}
+
 		// Delay to allow DOM to settle
-		const timer = setTimeout(() => {
+		const timer = window.setTimeout(() => {
 			updatePositions();
 		}, 150);
 
@@ -63,11 +68,13 @@ export function ParentToChildConnector({ childCount, childRefs }: ParentToChildC
 		window.addEventListener('resize', updatePositions);
 
 		return () => {
-			clearTimeout(timer);
+			window.clearTimeout(timer);
 			resizeObserver.disconnect();
 			window.removeEventListener('resize', updatePositions);
 		};
-	}, [childRefs, updatePositions]);
+	}, [childCount, childRefs, updatePositions]);
+
+	if (childCount === 0) return null;
 
 	const parentDotX = 30;
 	const parentDotY = 5;
