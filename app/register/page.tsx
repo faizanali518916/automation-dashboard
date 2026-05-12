@@ -7,12 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+const DEPARTMENTS = ['Design', 'Marketing', 'Operations', 'Sales'] as const;
+
+type Department = (typeof DEPARTMENTS)[number];
+
 export default function RegisterPage() {
 	const [name, setName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
-	const [dept, setDept] = useState<'Marketing' | 'Operations' | 'Sales'>('Marketing');
+	const [dept, setDept] = useState<Department>(DEPARTMENTS[0]);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
 	const [loading, setLoading] = useState(false);
@@ -83,12 +87,14 @@ export default function RegisterPage() {
 							<span>Department</span>
 							<select
 								value={dept}
-								onChange={(event) => setDept(event.target.value as 'Marketing' | 'Operations' | 'Sales')}
+								onChange={(event) => setDept(event.target.value as Department)}
 								className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:outline-none"
 							>
-								<option value="Marketing">Marketing</option>
-								<option value="Operations">Operations</option>
-								<option value="Sales">Sales</option>
+								{DEPARTMENTS.map((department) => (
+									<option key={department} value={department}>
+										{department}
+									</option>
+								))}
 							</select>
 						</label>
 						{error ? <p className="text-sm text-red-300">{error}</p> : null}

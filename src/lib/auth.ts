@@ -8,7 +8,8 @@ import { ensureAppDataSource, AppDataSource } from '@/lib/db/data-source';
 import { TokenEntity, TokenType, UserEntity, type UserTags } from '@/lib/db/entities/auth.entities';
 
 const SESSION_COOKIE = 'session';
-const ALLOWED_DEPARTMENTS = ['Marketing', 'Operations', 'Sales'] as const;
+
+export const ALLOWED_DEPARTMENTS = ['Design', 'Marketing', 'Operations', 'Sales'] as const;
 
 export type Department = (typeof ALLOWED_DEPARTMENTS)[number];
 

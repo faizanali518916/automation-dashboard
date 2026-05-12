@@ -2,12 +2,12 @@ import type { UserTags } from '@/lib/db/entities/auth.entities';
 
 export type RequiredTagRule = {
 	key: string;
-	value?: string | number | boolean;
 	min?: number;
+	value?: string | number | boolean;
 };
 
 export function isSuperUserTags(userTags: UserTags | undefined): boolean {
-	return userTags?.dept === 'SUPERUSER' || userTags?.role === 'SUPERUSER' || userTags?.isSuperuser === true;
+	return userTags?.role === 'SUPERUSER' || userTags?.isSuperUser === true;
 }
 
 export function hasRequiredTags(userTags: UserTags | undefined, requiredTags: RequiredTagRule[]): boolean {
