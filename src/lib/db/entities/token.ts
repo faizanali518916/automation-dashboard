@@ -1,34 +1,10 @@
 import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-export type UserTags = {
-	dept?: string;
-	[key: string]: string | number | boolean | null | undefined;
-};
+import { UserEntity } from './user';
 
 export enum TokenType {
 	EMAIL_VERIFICATION = 'email_verification',
 	REFRESH = 'refresh',
-}
-
-@Entity({ name: 'users' })
-export class UserEntity {
-	@PrimaryGeneratedColumn('uuid')
-	id!: string;
-
-	@Column({ type: 'varchar', nullable: true })
-	name!: string | null;
-
-	@Column({ type: 'varchar', unique: true })
-	email!: string;
-
-	@Column({ type: 'varchar', select: false })
-	password!: string;
-
-	@Column({ type: 'boolean', default: false })
-	emailVerified!: boolean;
-
-	@Column({ type: 'jsonb', default: {} })
-	tags!: UserTags;
 }
 
 @Entity({ name: 'tokens' })

@@ -1,22 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const DEPARTMENTS = ['Design', 'Marketing', 'Operations', 'Sales'] as const;
-
-type Department = (typeof DEPARTMENTS)[number];
+type Department = string;
 
 export default function RegisterPage() {
 	const [name, setName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
-	const [dept, setDept] = useState<Department>(DEPARTMENTS[0]);
+	const [dept, setDept] = useState<Department>('');
+	const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
 	const [loading, setLoading] = useState(false);
@@ -49,6 +48,23 @@ export default function RegisterPage() {
 		setSuccess(`Account created. Check your email for the verification link.`);
 		setLoading(false);
 	}
+
+	useEffect(() => {
+		let mounted = true;
+		fetch('/api/departments')
+			.then((res) => res.json())
+			.then((data) => {
+				if (!mounted) return;
+				if (data?.departments?.length) {
+					setDepartments(data.departments);
+					setDept((d) => d || data.departments[0].name);
+				}
+			})
+			.catch(() => {});
+		return () => {
+			mounted = false;
+		};
+	}, []);
 
 	return (
 		<main className="mx-auto my-auto flex min-h-[80vh] w-full max-w-md items-center px-6">
@@ -90,11 +106,15 @@ export default function RegisterPage() {
 								onChange={(event) => setDept(event.target.value as Department)}
 								className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:outline-none"
 							>
-								{DEPARTMENTS.map((department) => (
-									<option key={department} value={department}>
-										{department}
-									</option>
-								))}
+								{departments.length ? (
+									departments.map((department) => (
+										<option key={department.id} value={department.name}>
+											{department.name}
+										</option>
+									))
+								) : (
+									<option value="">Loading...</option>
+								)}
 							</select>
 						</label>
 						{error ? <p className="text-sm text-red-300">{error}</p> : null}

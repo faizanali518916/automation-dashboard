@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionToken, getSessionUser } from '@/lib/auth';
-import { hasRequiredTags } from '@/lib/abac';
-import { requiredTagsByToolId } from '@/config/navigation';
-import type { UserTags } from '@/lib/db/entities/auth.entities';
+import { getToolBySlug } from '@/lib/tools';
+import type { UserTags } from '@/lib/db/entities/user';
 
 export async function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
@@ -29,10 +28,19 @@ export async function proxy(request: NextRequest) {
 		return NextResponse.redirect(signInUrl);
 	}
 
-	const toolId = pathname.split('/')[2];
-	const requiredTags = requiredTagsByToolId.get(toolId) ?? [];
+	const toolSlug = pathname.split('/')[2];
+	const tool = await getToolBySlug(toolSlug);
 
-	if (!hasRequiredTags(userTags, requiredTags)) {
+	if (!tool) {
+		return NextResponse.redirect(new URL('/unauthorized', request.url));
+	}
+
+	if (
+		tool.departmentId &&
+		!userTags.canView?.includes(tool.departmentId) &&
+		!userTags.isAdministrator &&
+		!userTags.isSuperUser
+	) {
 		return NextResponse.redirect(new URL('/unauthorized', request.url));
 	}
 

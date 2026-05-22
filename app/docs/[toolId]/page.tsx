@@ -1,58 +1,80 @@
 import { notFound } from 'next/navigation';
 
-import { DocTemplate } from '@/components/docs/doc-template';
-import { externalToolDocs } from '@/config/external-docs';
-import { externalToolPricing } from '@/config/external-tool-pricing';
+import { EditableDocTemplate } from '@/components/docs/editable-doc-template';
+import { getAllTools, getToolBySlug } from '@/lib/tools';
+import { getServerAuthSession } from '@/lib/auth';
 
-type ExternalDocsIndex = typeof externalToolDocs;
+type ToolDocSection = {
+	title: string;
+	description?: string;
+	items?: string[];
+	note?: string;
+};
 
-type ExternalToolDoc = ExternalDocsIndex[keyof ExternalDocsIndex];
-
-const docsIndex = externalToolDocs;
-
-function buildSummary(tool: ExternalToolDoc) {
-	return tool.summary;
+function toSections(blocks: Array<{ title: string; description: string; bullets: string[] }>): ToolDocSection[] {
+	return blocks.map((block) => ({
+		title: block.title,
+		description: block.description || undefined,
+		items: block.bullets,
+	}));
 }
 
-function buildSections(tool: ExternalToolDoc) {
-	return tool.sections;
+function toExternalToolLinks(links: string[]) {
+	return links.map((href, index) => ({
+		label: links.length > 1 ? `Open Tool ${index + 1}` : 'Open Tool',
+		href,
+	}));
 }
 
-export function generateStaticParams() {
-	return Object.keys(docsIndex).map((toolId) => ({
-		toolId,
+export async function generateStaticParams() {
+	const tools = await getAllTools();
+	return tools.map((tool) => ({
+		toolId: tool.slug,
 	}));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ toolId: string }> }) {
 	const { toolId } = await params;
-	const tool = docsIndex[toolId];
+	const tool = await getToolBySlug(toolId);
 
 	if (!tool) {
 		return {};
 	}
 
+	const summary = tool.description ?? tool.name;
+
 	return {
-		title: `${tool.title} | External Tool Docs`,
-		description: tool.summary,
+		title: `${tool.name} | Tool Docs`,
+		description: summary,
 	};
 }
 
 export default async function ExternalToolDocPage({ params }: { params: Promise<{ toolId: string }> }) {
 	const { toolId } = await params;
-	const tool = docsIndex[toolId];
+	const tool = await getToolBySlug(toolId);
+	const session = await getServerAuthSession();
 
 	if (!tool) {
 		notFound();
 	}
 
+	// Check if user has modify permission for this tool's department
+	const canEdit =
+		!!session?.user &&
+		(session.user.tags?.isAdministrator ||
+			session.user.tags?.isSuperUser ||
+			(tool.departmentId && session.user.tags?.canModify?.includes(tool.departmentId)));
+
 	return (
-		<DocTemplate
-			eyebrow={tool.eyebrow}
-			title={tool.title}
-			summary={buildSummary(tool)}
-			pricing={externalToolPricing[toolId] ?? 'Not listed'}
-			sections={buildSections(tool)}
+		<EditableDocTemplate
+			toolId={tool.id}
+			eyebrow={tool.type === 'external' ? 'External Tool' : 'Internal Tool'}
+			title={tool.name}
+			summary={tool.description ?? ''}
+			pricing={tool.type === 'external' ? tool.pricing : undefined}
+			toolLinks={toExternalToolLinks(tool.links)}
+			sections={toSections(tool.documentation ?? [])}
+			canEdit={!!canEdit}
 		/>
 	);
 }

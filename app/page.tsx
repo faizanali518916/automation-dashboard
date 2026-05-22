@@ -1,49 +1,11 @@
 import { getServerAuthSession } from '@/lib/auth';
-import { hasRequiredTags, isSuperUserTags } from '@/lib/abac';
 import { DynamicTree } from '@/components/dashboard/dynamic-tree';
-import { navigationTree, type NavigationNode } from '@/config/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-function filterTreeByTags(
-	nodes: NavigationNode[],
-	userTags: Record<string, string | number | boolean | null | undefined>
-): NavigationNode[] {
-	if (isSuperUserTags(userTags)) {
-		return nodes;
-	}
-
-	return nodes
-		.map((node) => {
-			const filteredChildren = node.subcategories ? filterTreeByTags(node.subcategories, userTags) : undefined;
-
-			const canAccessCurrent = hasRequiredTags(userTags, node.requiredTags);
-			const hasVisibleChildren = Boolean(filteredChildren?.length);
-
-			if (node.subcategories && !hasVisibleChildren) {
-				return null;
-			}
-
-			if (!canAccessCurrent && !hasVisibleChildren) {
-				return null;
-			}
-
-			if (filteredChildren) {
-				return {
-					...node,
-					subcategories: filteredChildren,
-				};
-			}
-
-			return node;
-		})
-		.filter((node): node is NavigationNode => node !== null);
-}
+import { buildToolTree } from '@/lib/tools';
 
 export default async function Home() {
 	const session = await getServerAuthSession();
-	const userTags = session?.user.tags ?? {};
-
-	const filteredNavigation = filterTreeByTags(navigationTree, userTags);
+	const filteredNavigation = await buildToolTree(session?.user.tags ?? {});
 
 	return (
 		<main className="relative flex flex-1 flex-col overflow-hidden px-6 py-10 sm:px-8 sm:py-12">

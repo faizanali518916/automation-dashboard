@@ -1,8 +1,8 @@
-import type { NavigationNode } from '@/config/navigation';
+import type { ToolTreeNode } from '@/lib/tool-tree';
 import { TreeNode } from '@/components/dashboard/tree-node';
 
 type DynamicTreeProps = {
-	nodes: NavigationNode[];
+	nodes: ToolTreeNode[];
 };
 
 export function DynamicTree({ nodes }: DynamicTreeProps) {

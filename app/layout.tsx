@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Sora, JetBrains_Mono } from 'next/font/google';
 
 import { getServerAuthSession } from '@/lib/auth';
+import { isAdministratorTags } from '@/lib/abac';
 import './globals.css';
 
 const sora = Sora({
@@ -41,9 +42,16 @@ export default async function RootLayout({
 									Dashboard
 								</Link>
 								{session ? (
-									<Link href="/profile" className="transition hover:text-zinc-100">
-										Profile
-									</Link>
+									<>
+										<Link href="/profile" className="transition hover:text-zinc-100">
+											Profile
+										</Link>
+										{isAdministratorTags(session.user.tags) && (
+											<Link href="/admin/permissions" className="transition hover:text-zinc-100">
+												Permissions
+											</Link>
+										)}
+									</>
 								) : (
 									<>
 										<Link href="/login" className="transition hover:text-zinc-100">

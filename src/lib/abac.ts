@@ -1,4 +1,4 @@
-import type { UserTags } from '@/lib/db/entities/auth.entities';
+import type { UserTags } from './db/entities/user';
 
 export type RequiredTagRule = {
 	key: string;
@@ -7,7 +7,11 @@ export type RequiredTagRule = {
 };
 
 export function isSuperUserTags(userTags: UserTags | undefined): boolean {
-	return userTags?.role === 'SUPERUSER' || userTags?.isSuperUser === true;
+	return userTags?.role === 'SUPERUSER' || userTags?.isSuperUser === true || userTags?.isAdministrator === true;
+}
+
+export function isAdministratorTags(userTags: UserTags | undefined): boolean {
+	return userTags?.isAdministrator === true;
 }
 
 export function hasRequiredTags(userTags: UserTags | undefined, requiredTags: RequiredTagRule[]): boolean {

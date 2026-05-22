@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
-import { ALLOWED_DEPARTMENTS, normalizeDepartment, registerUser } from '@/lib/auth';
+import { getDepartments, normalizeDepartment, registerUser } from '@/lib/auth';
 
 async function sendVerificationEmail(to: string, verifyUrl: string) {
 	const smtpPort = Number(process.env.SMTP_PORT);
@@ -48,12 +48,10 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
 		}
 
-		const department = normalizeDepartment(dept);
+		const department = await normalizeDepartment(dept);
 		if (!department) {
-			return NextResponse.json(
-				{ error: `Department must be one of: ${ALLOWED_DEPARTMENTS.join(', ')}` },
-				{ status: 400 }
-			);
+			const allowed = await getDepartments();
+			return NextResponse.json({ error: `Department must be one of: ${allowed.join(', ')}` }, { status: 400 });
 		}
 
 		const result = await registerUser(email.toLowerCase().trim(), password, name?.trim() || null, department);

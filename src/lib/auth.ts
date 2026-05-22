@@ -4,14 +4,26 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 
-import { ensureAppDataSource, AppDataSource } from '@/lib/db/data-source';
-import { TokenEntity, TokenType, UserEntity, type UserTags } from '@/lib/db/entities/auth.entities';
+import { AppDataSource, runDbOperation } from '@/lib/db/data-source';
+import { TokenEntity, TokenType } from './db/entities/token';
+import { UserEntity, type UserTags } from './db/entities/user';
+import { DepartmentEntity } from './db/entities/department';
 
 const SESSION_COOKIE = 'session';
 
-export const ALLOWED_DEPARTMENTS = ['Design', 'Marketing', 'Operations', 'Sales'] as const;
+declare global {
+	var __sessionLookupCache: Map<string, Promise<AuthUser | null>> | undefined;
+}
 
-export type Department = (typeof ALLOWED_DEPARTMENTS)[number];
+export type Department = string;
+
+export async function getDepartments(): Promise<string[]> {
+	return runDbOperation(async () => {
+		const repo = AppDataSource.getRepository(DepartmentEntity);
+		const rows = await repo.find({ select: ['name'], order: { name: 'ASC' } });
+		return rows.map((r) => r.name);
+	});
+}
 
 export type AuthUser = {
 	id: string;
@@ -25,9 +37,10 @@ function randomToken() {
 	return randomBytes(32).toString('hex');
 }
 
-export function normalizeDepartment(value: string | undefined): Department | null {
+export async function normalizeDepartment(value: string | undefined): Promise<Department | null> {
 	if (!value) return null;
-	return ALLOWED_DEPARTMENTS.includes(value as Department) ? (value as Department) : null;
+	const allowed = await getDepartments();
+	return allowed.includes(value) ? value : null;
 }
 
 export async function hashPassword(password: string) {
@@ -39,86 +52,98 @@ export async function checkPassword(password: string, hash: string) {
 }
 
 export async function registerUser(email: string, password: string, name: string | null, dept: Department) {
-	await ensureAppDataSource();
-	const userRepo = AppDataSource.getRepository(UserEntity);
-
-	const normalizedEmail = email.toLowerCase().trim();
-	const existing = await userRepo.findOne({ where: { email: normalizedEmail } });
-	if (existing) {
-		return { error: 'Email already registered' };
-	}
-
 	const passwordHash = await hashPassword(password);
-	const user = await userRepo.save(
-		userRepo.create({
-			email: normalizedEmail,
-			password: passwordHash,
-			name,
-			emailVerified: false,
-			tags: { dept },
-		})
-	);
 
-	const token = randomToken();
-	const tokenRepo = AppDataSource.getRepository(TokenEntity);
-	await tokenRepo.save(
-		tokenRepo.create({
-			type: TokenType.EMAIL_VERIFICATION,
-			tokenHash: token,
-			userId: user.id,
-			expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-			revokedAt: null,
-		})
-	);
+	return runDbOperation(async () => {
+		const userRepo = AppDataSource.getRepository(UserEntity);
 
-	return { ok: true, verifyToken: token };
+		const normalizedEmail = email.toLowerCase().trim();
+		const existing = await userRepo.findOne({ where: { email: normalizedEmail } });
+		if (existing) {
+			return { error: 'Email already registered' };
+		}
+
+		const deptRepo = AppDataSource.getRepository(DepartmentEntity);
+		const deptRecord = await deptRepo.findOne({ where: { name: dept } });
+		const initialTags: UserTags = {
+			isAdministrator: false,
+			isSuperUser: false,
+			canModify: [],
+			canView: deptRecord ? [deptRecord.id] : [],
+		};
+
+		const user = await userRepo.save(
+			userRepo.create({
+				email: normalizedEmail,
+				password: passwordHash,
+				name,
+				emailVerified: false,
+				tags: initialTags,
+			})
+		);
+
+		const token = randomToken();
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		await tokenRepo.save(
+			tokenRepo.create({
+				type: TokenType.EMAIL_VERIFICATION,
+				tokenHash: token,
+				userId: user.id,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+				revokedAt: null,
+			})
+		);
+
+		return { ok: true, verifyToken: token };
+	});
 }
 
 export async function verifyEmailAndCreateSession(token: string) {
-	await ensureAppDataSource();
-	const tokenRepo = AppDataSource.getRepository(TokenEntity);
-	const record = await tokenRepo.findOne({
-		where: { type: TokenType.EMAIL_VERIFICATION, tokenHash: token },
+	return runDbOperation(async () => {
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		const record = await tokenRepo.findOne({
+			where: { type: TokenType.EMAIL_VERIFICATION, tokenHash: token },
+		});
+
+		if (!record || record.expiresAt < new Date()) {
+			return null;
+		}
+
+		const userRepo = AppDataSource.getRepository(UserEntity);
+		const user = await userRepo.findOne({ where: { id: record.userId } });
+		if (!user) {
+			return null;
+		}
+
+		user.emailVerified = true;
+		await userRepo.save(user);
+		await tokenRepo.delete({ id: record.id });
+
+		const sessionToken = randomToken();
+		const refreshTokenRepo = AppDataSource.getRepository(TokenEntity);
+		await refreshTokenRepo.save(
+			refreshTokenRepo.create({
+				type: TokenType.REFRESH,
+				tokenHash: sessionToken,
+				userId: user.id,
+				expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+				revokedAt: null,
+			})
+		);
+
+		return { sessionToken, user: userToAuth(user) };
 	});
-
-	if (!record || record.expiresAt < new Date()) {
-		return null;
-	}
-
-	const userRepo = AppDataSource.getRepository(UserEntity);
-	const user = await userRepo.findOne({ where: { id: record.userId } });
-	if (!user) {
-		return null;
-	}
-
-	user.emailVerified = true;
-	await userRepo.save(user);
-	await tokenRepo.delete({ id: record.id });
-
-	const sessionToken = randomToken();
-	const refreshTokenRepo = AppDataSource.getRepository(TokenEntity);
-	await refreshTokenRepo.save(
-		refreshTokenRepo.create({
-			type: TokenType.REFRESH,
-			tokenHash: sessionToken,
-			userId: user.id,
-			expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-			revokedAt: null,
-		})
-	);
-
-	return { sessionToken, user: userToAuth(user) };
 }
 
 export async function loginUser(email: string, password: string) {
-	await ensureAppDataSource();
-	const userRepo = AppDataSource.getRepository(UserEntity);
-
-	const user = await userRepo
-		.createQueryBuilder('u')
-		.addSelect('u.password')
-		.where('u.email = :email', { email: email.toLowerCase().trim() })
-		.getOne();
+	const user = await runDbOperation(async () => {
+		const userRepo = AppDataSource.getRepository(UserEntity);
+		return userRepo
+			.createQueryBuilder('u')
+			.addSelect('u.password')
+			.where('u.email = :email', { email: email.toLowerCase().trim() })
+			.getOne();
+	});
 
 	if (!user || !(await checkPassword(password, user.password))) {
 		return { error: 'Invalid credentials' };
@@ -129,46 +154,50 @@ export async function loginUser(email: string, password: string) {
 	}
 
 	const sessionToken = randomToken();
-	const refreshRepo = AppDataSource.getRepository(TokenEntity);
-	await refreshRepo.save(
-		refreshRepo.create({
-			type: TokenType.REFRESH,
-			tokenHash: sessionToken,
-			userId: user.id,
-			expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-			revokedAt: null,
-		})
-	);
+	await runDbOperation(async () => {
+		const refreshRepo = AppDataSource.getRepository(TokenEntity);
+		await refreshRepo.save(
+			refreshRepo.create({
+				type: TokenType.REFRESH,
+				tokenHash: sessionToken,
+				userId: user.id,
+				expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+				revokedAt: null,
+			})
+		);
+	});
 
 	return { sessionToken, user: userToAuth(user) };
 }
 
 export async function getSessionUser(sessionToken: string): Promise<AuthUser | null> {
-	await ensureAppDataSource();
-	const tokenRepo = AppDataSource.getRepository(TokenEntity);
-	const session = await tokenRepo.findOne({
-		where: { type: TokenType.REFRESH, tokenHash: sessionToken },
+	return runDbOperation(async () => {
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		const session = await tokenRepo.findOne({
+			where: { type: TokenType.REFRESH, tokenHash: sessionToken },
+		});
+
+		if (!session || session.revokedAt || session.expiresAt < new Date()) {
+			return null;
+		}
+
+		const userRepo = AppDataSource.getRepository(UserEntity);
+		const user = await userRepo.findOne({ where: { id: session.userId } });
+		return user ? userToAuth(user) : null;
 	});
-
-	if (!session || session.revokedAt || session.expiresAt < new Date()) {
-		return null;
-	}
-
-	const userRepo = AppDataSource.getRepository(UserEntity);
-	const user = await userRepo.findOne({ where: { id: session.userId } });
-	return user ? userToAuth(user) : null;
 }
 
 export async function revokeSession(sessionToken: string) {
-	await ensureAppDataSource();
-	const tokenRepo = AppDataSource.getRepository(TokenEntity);
-	const session = await tokenRepo.findOne({
-		where: { type: TokenType.REFRESH, tokenHash: sessionToken },
+	return runDbOperation(async () => {
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		const session = await tokenRepo.findOne({
+			where: { type: TokenType.REFRESH, tokenHash: sessionToken },
+		});
+		if (session) {
+			session.revokedAt = new Date();
+			await tokenRepo.save(session);
+		}
 	});
-	if (session) {
-		session.revokedAt = new Date();
-		await tokenRepo.save(session);
-	}
 }
 
 function userToAuth(user: UserEntity): AuthUser {
@@ -185,7 +214,30 @@ export async function getServerAuthSession(): Promise<{ user: AuthUser } | null>
 	const cookieStore = await cookies();
 	const sessionToken = cookieStore.get(SESSION_COOKIE)?.value;
 	if (!sessionToken) return null;
-	const user = await getSessionUser(sessionToken);
+
+	// Deduplicate concurrent lookups for the same session token to avoid
+	// issuing parallel DB queries on the same pg client which can trigger
+	// the deprecation warning in pg when a single client is reused.
+	const cacheKey = `session:${sessionToken}`;
+	if (!globalThis.__sessionLookupCache) {
+		globalThis.__sessionLookupCache = new Map<string, Promise<AuthUser | null>>();
+	}
+	const cache = globalThis.__sessionLookupCache;
+
+	let promise = cache.get(cacheKey);
+	if (!promise) {
+		promise = (async () => {
+			try {
+				return await getSessionUser(sessionToken);
+			} finally {
+				// remove once settled so later requests will re-run lookup
+				cache.delete(cacheKey);
+			}
+		})();
+		cache.set(cacheKey, promise);
+	}
+
+	const user = await promise;
 	return user ? { user } : null;
 }
 
