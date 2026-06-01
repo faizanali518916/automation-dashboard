@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { UserTags } from '@/lib/db/entities/user';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 type User = { id: string; email: string; name: string | null; tags: UserTags };
 type Dept = { id: string; name: string };
@@ -128,8 +128,8 @@ export default function PermissionsManager() {
 		}
 	}
 
-	if (loading) return <p className="text-sm text-zinc-400">Loading users and departments…</p>;
 	if (error) return <p className="text-sm text-red-400">{error}</p>;
+	if (loading) return <p className="text-sm text-zinc-400">Loading users and departments…</p>;
 	if (!loading && users.length === 0) return <p className="text-sm text-zinc-400">No users found.</p>;
 
 	return (

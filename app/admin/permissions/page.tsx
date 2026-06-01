@@ -12,7 +12,6 @@ export default async function AdminPermissionsPage() {
 	return (
 		<main className="mx-auto my-8 max-w-4xl px-4">
 			<h1 className="mb-4 text-2xl font-bold">User Permissions</h1>
-			{/* client component handles fetching and editing */}
 			<PermissionsManager />
 		</main>
 	);

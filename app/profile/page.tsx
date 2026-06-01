@@ -58,7 +58,7 @@ export default async function ProfilePage() {
 								</div>
 							</div>
 							<div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
-								<div className="text-xs tracking-[0.2em] text-zinc-500 uppercase">Platform Access</div>
+								<div className="text-xs tracking-[0.2em] text-zinc-500 uppercase">Access</div>
 								<div className="mt-2 text-lg font-semibold text-zinc-100">
 									{isSuperUser ? 'Superuser enabled' : 'Standard access'}
 								</div>

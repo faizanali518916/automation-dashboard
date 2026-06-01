@@ -21,7 +21,7 @@ export async function GET() {
 			const userRepo = AppDataSource.getRepository(UserEntity);
 			return userRepo.find({
 				select: ['id', 'email', 'name', 'tags', 'createdAt'],
-				order: { email: 'ASC' },
+				order: { createdAt: 'DESC' },
 			});
 		});
 

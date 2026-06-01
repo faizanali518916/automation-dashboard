@@ -31,11 +31,11 @@ export async function getToolsByUserTags(userTags?: UserTags): Promise<ToolEntit
 		}
 
 		if (userTags?.canView && userTags.canView.length > 0) {
-			query.where('tool.departmentId IS NULL OR tool.departmentId IN (:departmentIds)', {
+			query.where('tool.departmentId IS NULL OR tool.departmentId IN (:...departmentIds)', {
 				departmentIds: userTags.canView,
 			});
 		} else if (userTags?.canModify && userTags.canModify.length > 0) {
-			query.where('tool.departmentId IS NULL OR tool.departmentId IN (:departmentIds)', {
+			query.where('tool.departmentId IS NULL OR tool.departmentId IN (:...departmentIds)', {
 				departmentIds: userTags.canModify,
 			});
 		} else {
@@ -179,7 +179,7 @@ export async function getEditableDepartments(userTags?: UserTags): Promise<Depar
 			return [];
 		}
 
-		return query.where('department.id IN (:departmentIds)', { departmentIds: userTags.canModify }).getMany();
+		return query.where('department.id IN (:...departmentIds)', { departmentIds: userTags.canModify }).getMany();
 	});
 }
 
