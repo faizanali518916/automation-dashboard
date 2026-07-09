@@ -15,6 +15,7 @@ export default function LoginPage() {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 	const params = useSearchParams();
+	const passwordResetSuccess = params.get('reset') === '1';
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -44,6 +45,9 @@ export default function LoginPage() {
 				<CardHeader>
 					<CardTitle>Sign in to Dashboard</CardTitle>
 					<CardDescription>Use your internal credentials to continue.</CardDescription>
+					{passwordResetSuccess ? (
+						<p className="text-sm text-emerald-300">Password reset complete. Please sign in again.</p>
+					) : null}
 				</CardHeader>
 				<CardContent>
 					<form onSubmit={onSubmit} className="space-y-4">
@@ -69,6 +73,11 @@ export default function LoginPage() {
 							>
 								{showPassword ? 'Hide' : 'Show'}
 							</button>
+						</div>
+						<div className="text-right">
+							<Link href="/forgot-password" className="text-sm text-sky-300 transition hover:text-sky-200">
+								Forgot password?
+							</Link>
 						</div>
 						{error ? <p className="text-sm text-red-300">{error}</p> : null}
 						<Button className="w-full" type="submit" disabled={loading}>

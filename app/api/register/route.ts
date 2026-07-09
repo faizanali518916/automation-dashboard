@@ -1,35 +1,7 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 
 import { getDepartments, normalizeDepartment, registerUser } from '@/lib/auth';
-
-async function sendVerificationEmail(to: string, verifyUrl: string) {
-	const smtpPort = Number(process.env.SMTP_PORT);
-	const smtpHost = process.env.SMTP_HOST;
-	const smtpUser = process.env.SMTP_USER;
-	const smtpPass = process.env.SMTP_PASS;
-
-	if (!smtpPort || !smtpHost || !smtpUser || !smtpPass) {
-		throw new Error('SMTP configuration is incomplete.');
-	}
-
-	const transporter = nodemailer.createTransport({
-		host: smtpHost,
-		port: smtpPort,
-		secure: smtpPort === 465,
-		auth: {
-			user: smtpUser,
-			pass: smtpPass,
-		},
-	});
-
-	await transporter.sendMail({
-		from: smtpUser,
-		to,
-		subject: 'Verify your account',
-		html: `<p>Click to verify your account:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
-	});
-}
+import { sendActionEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
 	try {
@@ -60,10 +32,17 @@ export async function POST(request: Request) {
 		}
 
 		const verifyUrl = new URL(`/api/auth/verify-email?token=${result.verifyToken}`, request.url).toString();
-		await sendVerificationEmail(email.toLowerCase().trim(), verifyUrl);
+		await sendActionEmail({
+			to: email.toLowerCase().trim(),
+			subject: 'Verify your account',
+			title: 'Verify your account',
+			description: 'Click the link below to verify your account.',
+			actionUrl: verifyUrl,
+			actionLabel: 'Verify account',
+		});
 		const isDev = process.env.NODE_ENV !== 'production';
 
-		return NextResponse.json({ ok: true, verificationPreviewUrl: isDev ? verifyUrl : null }, { status: 201 });
+		return NextResponse.json({ ok: true, previewUrl: isDev ? verifyUrl : null }, { status: 201 });
 	} catch {
 		return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
 	}

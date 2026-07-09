@@ -1,8 +1,9 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
+import type { Repository } from 'typeorm';
 
 import { AppDataSource, runDbOperation } from '@/lib/db/data-source';
 import { TokenEntity, TokenType } from './db/entities/token';
@@ -35,6 +36,50 @@ export type AuthUser = {
 
 function randomToken() {
 	return randomBytes(32).toString('hex');
+}
+
+function hashToken(token: string) {
+	return createHash('sha256').update(token).digest('hex');
+}
+
+function tokenExpiry(hours: number) {
+	return new Date(Date.now() + hours * 60 * 60 * 1000);
+}
+
+async function createOneTimeToken(
+	tokenRepo: Repository<TokenEntity>,
+	type: TokenType,
+	userId: string,
+	expiresAt: Date
+) {
+	const token = randomToken();
+	await tokenRepo.save(
+		tokenRepo.create({
+			type,
+			tokenHash: hashToken(token),
+			userId,
+			expiresAt,
+			revokedAt: null,
+		})
+	);
+
+	return token;
+}
+
+async function findOneTimeToken(tokenRepo: Repository<TokenEntity>, type: TokenType, token: string) {
+	const hashedToken = hashToken(token);
+	const record = await tokenRepo.findOne({
+		where: { type, tokenHash: hashedToken },
+	});
+
+	if (record) {
+		return record;
+	}
+
+	// Backward compatibility for verification links created before tokens were hashed.
+	return tokenRepo.findOne({
+		where: { type, tokenHash: token },
+	});
 }
 
 export async function normalizeDepartment(value: string | undefined): Promise<Department | null> {
@@ -82,17 +127,8 @@ export async function registerUser(email: string, password: string, name: string
 			})
 		);
 
-		const token = randomToken();
 		const tokenRepo = AppDataSource.getRepository(TokenEntity);
-		await tokenRepo.save(
-			tokenRepo.create({
-				type: TokenType.EMAIL_VERIFICATION,
-				tokenHash: token,
-				userId: user.id,
-				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-				revokedAt: null,
-			})
-		);
+		const token = await createOneTimeToken(tokenRepo, TokenType.EMAIL_VERIFICATION, user.id, tokenExpiry(24));
 
 		return { ok: true, verifyToken: token };
 	});
@@ -101,9 +137,7 @@ export async function registerUser(email: string, password: string, name: string
 export async function verifyEmailAndCreateSession(token: string) {
 	return runDbOperation(async () => {
 		const tokenRepo = AppDataSource.getRepository(TokenEntity);
-		const record = await tokenRepo.findOne({
-			where: { type: TokenType.EMAIL_VERIFICATION, tokenHash: token },
-		});
+		const record = await findOneTimeToken(tokenRepo, TokenType.EMAIL_VERIFICATION, token);
 
 		if (!record || record.expiresAt < new Date()) {
 			return null;
@@ -132,6 +166,50 @@ export async function verifyEmailAndCreateSession(token: string) {
 		);
 
 		return { sessionToken, user: userToAuth(user) };
+	});
+}
+
+export async function createPasswordResetToken(email: string) {
+	return runDbOperation(async () => {
+		const userRepo = AppDataSource.getRepository(UserEntity);
+		const user = await userRepo.findOne({ where: { email: email.toLowerCase().trim() } });
+
+		if (!user) {
+			return { ok: true, resetToken: null };
+		}
+
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		await tokenRepo.update({ type: TokenType.PASSWORD_RESET, userId: user.id }, { revokedAt: new Date() });
+
+		const resetToken = await createOneTimeToken(tokenRepo, TokenType.PASSWORD_RESET, user.id, tokenExpiry(1));
+
+		return { ok: true, resetToken };
+	});
+}
+
+export async function resetPasswordWithToken(token: string, password: string) {
+	const passwordHash = await hashPassword(password);
+
+	return runDbOperation(async () => {
+		const tokenRepo = AppDataSource.getRepository(TokenEntity);
+		const record = await findOneTimeToken(tokenRepo, TokenType.PASSWORD_RESET, token);
+
+		if (!record || record.revokedAt || record.expiresAt < new Date()) {
+			return { error: 'Invalid or expired reset link' };
+		}
+
+		const userRepo = AppDataSource.getRepository(UserEntity);
+		const user = await userRepo.findOne({ where: { id: record.userId } });
+		if (!user) {
+			return { error: 'Invalid or expired reset link' };
+		}
+
+		await userRepo.update({ id: user.id }, { password: passwordHash });
+		record.revokedAt = new Date();
+		await tokenRepo.save(record);
+		await tokenRepo.update({ type: TokenType.REFRESH, userId: user.id }, { revokedAt: new Date() });
+
+		return { ok: true };
 	});
 }
 
